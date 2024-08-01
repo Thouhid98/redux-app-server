@@ -31,7 +31,7 @@ async function run() {
 
     // MiddleWare for verify users token
     const verifyToken = (req, res, next) => {
-      console.log("Inside middleware", req.headers.authorization);
+      // console.log('Inside middleware', req.headers.authorization);
       if (!req.headers.authorization) {
         return res.status(401).send({ message: "Forbidden Acces" });
       }
@@ -44,6 +44,21 @@ async function run() {
         next();
       });
     };
+
+    // Checking User Admin or Not
+    app.get("/users/admin/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ message: "Unauthorized Access" });
+      }
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      let admin = false;
+      if (user) {
+        admin = user?.role === "admin";
+      }
+      res.send({ admin });
+    });
 
     // JWT APi
     app.post("/jwt", async (req, res) => {
@@ -104,6 +119,13 @@ async function run() {
           .status(500)
           .send({ error: "An error occurred while saving the user." });
       }
+    });
+
+    app.get("/watchedmovies/profile/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { userEmail: email };
+      const result = await watchedMoviesCollection.find(query).toArray();
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
